@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Mundial</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <h1>Dashboard Mundial</h1>
+
+    <h2>Datos de {{ paises[pais] }}</h2>
+
+    <div class="kpis">
+        <div class="card">
+            <h3>Población actual</h3>
+            <p>{{ "{:,.0f}".format(kpis.poblacion_actual) }}</p>
+        </div>
+
+        <div class="card">
+            <h3>PIB actual</h3>
+            <p>{{ "{:,.0f}".format(kpis.pib_actual) }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Esperanza de vida actual</h3>
+            <p>{{ "{:.2f}".format(kpis.esperanza_vida_actual) }}</p>
+        </div>
+
+        <div class="card">
+            <h3>Crecimiento poblacional</h3>
+            <p>{{ "{:.2f}".format(kpis.crecimiento) }}%</p>
+        </div>
+    </div>
+
+    {% if comparar == "1" and kpis_comparacion %}
+        <h2>Comparación con {{ paises[pais_comparacion] }}</h2>
+
+        <div class="kpis">
+            <div class="card">
+                <h3>Población actual</h3>
+                <p>{{ "{:,.0f}".format(kpis_comparacion.poblacion_actual) }}</p>
+            </div>
+
+            <div class="card">
+                <h3>PIB actual</h3>
+                <p>{{ "{:,.0f}".format(kpis_comparacion.pib_actual) }}</p>
+            </div>
+
+            <div class="card">
+                <h3>Esperanza de vida</h3>
+                <p>{{ "{:.2f}".format(kpis_comparacion.esperanza_vida_actual) }}</p>
+            </div>
+
+            <div class="card">
+                <h3>Crecimiento poblacional</h3>
+                <p>{{ "{:.2f}".format(kpis_comparacion.crecimiento) }}%</p>
+            </div>
+        </div>
+    {% endif %}
+
+    <form method="GET">
+        <select name="pais">
+            {% for codigo, nombre in paises.items() %}
+                <option value="{{ codigo }}" {% if codigo == pais %}selected{% endif %}>
+                    {{ nombre }}
+                </option>
+            {% endfor %}
+        </select>
+
+        
+
+        <label>
+            <input type="checkbox" name="comparar" value="1" {% if comparar == "1" %}checked{% endif %}>
+            Comparar países
+        </label>
+
+        <select name="pais_comparacion">
+            {% for codigo, nombre in paises.items() %}
+                <option value="{{ codigo }}" {% if codigo == pais_comparacion %}selected{% endif %}>
+                    {{ nombre }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <select name="indicador">
+            <option value="SP.POP.TOTL" {% if indicador == "SP.POP.TOTL" %}selected{% endif %}>Población</option>
+            <option value="NY.GDP.MKTP.CD" {% if indicador == "NY.GDP.MKTP.CD" %}selected{% endif %}>PIB</option>
+            <option value="SP.DYN.LE00.IN" {% if indicador == "SP.DYN.LE00.IN" %}selected{% endif %}>Esperanza de vida</option>
+        </select>
+
+        <button type="submit">Buscar</button>
+
+    </form>
+
+    <div class="seccion-grafico-tabla">
+
+        <div class="grafico">
+            <h2>Evolución de {{ indicadores[indicador] }}</h2>
+
+            <canvas id="graficoPoblacion"></canvas>
+
+            <script>
+                var labelsPoblacion = {{ anios | tojson }};
+                var datosPoblacion = {{ poblaciones | tojson }};
+
+                var ctxPoblacion = document.getElementById("graficoPoblacion");
+
+                new Chart(ctxPoblacion, {
+                    type: "line",
+                    data: {
+                        labels: labelsPoblacion,
+                        datasets: [
+                            {
+                                label: "{{ paises[pais] }}",
+                                data: datosPoblacion
+                            }
+
+                            {% if comparar == "1" and poblaciones_comparacion %}
+                            ,
+                            {
+                                label: "{{ paises[pais_comparacion] }}",
+                                data: {{ poblaciones_comparacion | tojson }}
+                            }
+                            {% endif %}
+                        ]
+                    }
+
+                
+                });
+
+
+               
+            </script>
+        </div>
+
+        <div class="tabla-poblacion">
+            <h2>Tabla de {{ indicadores[indicador] }}</h2>
+
+            <table>
+                <tr>
+                    <th>Año</th>
+                    <th>{{ indicadores[indicador] }}</th>
+                </tr>
+
+                {% for fila in datos %}
+                <tr>
+                    <td>{{ fila[0]|int }}</td>
+                    <td>{{ "{:,.0f}".format(fila[1]) }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+    </div>
+
+</body>
+</html>
